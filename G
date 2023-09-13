@@ -1,0 +1,70 @@
+import logging
+from telegram import *
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+import requests
+from bs4 import BeautifulSoup
+# Enable logging
+logging.basicConfig(
+format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+# set higher logging level for httpx to avoid all GET and POST requests being logged
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
+def dolar():
+url = 'https://www.tgju.org/%D9%82%DB%8C%D9%85%D8%AA-%D8%AF%D9%84%D8%A7%D8%B1'
+x = requests.get(url, headers = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.141 Safari/537.36", "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"})
+su = BeautifulSoup(x.content, "html.parser")
+su = su.find("tbody")
+s1 = su.find("td", class_="nf")
+s2 = su.find("span", class_="high")
+if s2 == None:
+s2 = su.find("span", class_="low")
+if s2 == None and s1 == None:
+print("NO API")
+return ["NO API"]
+else:
+s0 = {s1.text,s2.text}
+return s0
+# Define a few command handlers. These usually take the two arguments update and
+# context.
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+reply_keyboard = [
+["Age", "Favourite colour"],
+["Number of siblings", "Something else..."],
+["Done"],
+]
+markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
+user = update.effective_user
+await update.message.reply_text(
+"Hi! My name is Doctor Botter. I will hold a more complex conversation with you. "
+"Why don't you tell me something about yourself?",
+reply_markup=markup,
+)
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+"""Send a message when the command /help is issued."""
+await update.message.reply_text("Help!")
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+"""Echo the user message."""
+await update.message.reply_text(update.message.text)
+async def age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+ss = dolar() 
+ss = str(ss)
+await update.message.reply_text(
+ss
+)
+
+def main() -> None:
+"""Start the bot."""
+# Create the Application and pass it your bot's token.
+application = Application.builder().token("6uuuu").build()
+# on different commands - answer in Telegram
+application.add_handler(CommandHandler("start", start))
+application.add_handler(MessageHandler(filters.TEXT, age))
+application.add_handler(CommandHandler("help", help_command))
+# on non command i.e message - echo the message on Telegram
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+# Run the bot until the user presses Ctrl-C
+application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == "__main__":
+main()
